@@ -26,7 +26,15 @@ jobs:
 
       - name: Organize into separate folders
         run: |
-          cd temp_solutions
+          # Check if temp_solutions/problems exists
+          if [ -d "temp_solutions/problems" ]; then
+            cd temp_solutions/problems
+          elif [ -d "temp_solutions" ]; then
+            cd temp_solutions
+          else
+            echo "No solutions found"
+            exit 0
+          fi
           
           # Process each solution file
           for file in *; do
@@ -36,18 +44,18 @@ jobs:
               extension="${file##*.}"
               
               # Create folder in root with problem name
-              mkdir -p "../$filename"
+              mkdir -p "../../$filename"
               
               # Move file into its folder
-              mv "$file" "../$filename/solution.$extension"
+              cp "$file" "../../$filename/solution.$extension"
               
-              # Optional: Create a README for each problem
-              echo "# $filename" > "../$filename/README.md"
+              # Create a README for each problem
+              echo "# $filename" > "../../$filename/README.md"
             fi
           done
           
-          # Remove temp folder
-          cd ..
+          # Go back to root and remove temp folder
+          cd ../..
           rm -rf temp_solutions
 
       - name: Commit and push changes
