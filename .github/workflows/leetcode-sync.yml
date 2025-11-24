@@ -105,21 +105,23 @@ jobs:
                   submissions = data['submissions_dump']
                   print(f"Found {len(submissions)} submissions")
                   
-                  # Track processed problems to avoid duplicates
-                  processed = set()
+                  # Track processed problems with language
+                  processed = {}  # {title_slug: {lang1, lang2, ...}}
                   
                   # Process only accepted submissions
                   for sub in submissions:
                       if sub['status_display'] == 'Accepted':
                           title_slug = sub['title_slug']
-                          
-                          # Skip if already processed
-                          if title_slug in processed:
-                              continue
-                          processed.add(title_slug)
-                          
                           lang = sub['lang']
                           code = sub.get('code', '')
+                          
+                          # Check if this language already processed for this problem
+                          if title_slug in processed and lang in processed[title_slug]:
+                              continue
+                          
+                          if title_slug not in processed:
+                              processed[title_slug] = set()
+                          processed[title_slug].add(lang)
                           
                           # Get problem details
                           problem_info = get_problem_number(title_slug)
@@ -128,11 +130,8 @@ jobs:
                               problem_number = problem_info['questionFrontendId']
                               problem_title = problem_info['title']
                               difficulty = problem_info['difficulty']
-                              
-                              # Create clean folder name: number-title
                               folder_name = f"{problem_number}-{title_slug}"
                           else:
-                              # Fallback if API fails
                               folder_name = title_slug
                               problem_title = title_slug.replace('-', ' ').title()
                               difficulty = "Unknown"
@@ -150,19 +149,30 @@ jobs:
                           }
                           ext = ext_map.get(lang, 'txt')
                           
-                          # Save solution
-                          with open(f"{folder_name}/solution.{ext}", 'w', encoding='utf-8') as f:
+                          # Save solution with language-specific filename
+                          filename = f"{folder_name}/solution.{ext}"
+                          with open(filename, 'w', encoding='utf-8') as f:
                               f.write(code)
                           
-                          # Create README
-                          with open(f"{folder_name}/README.md", 'w', encoding='utf-8') as f:
-                              f.write(f"# {problem_title}\n\n")
-                              f.write(f"**Difficulty:** {difficulty}\n\n")
-                              f.write(f"**Language:** {lang}\n\n")
-                              f.write(f"**Problem Link:** [LeetCode](https://leetcode.com/problems/{title_slug}/)\n\n")
-                              f.write(f"**Status:** {sub['status_display']}\n")
+                          # Update or create README
+                          readme_path = f"{folder_name}/README.md"
+                          if os.path.exists(readme_path):
+                              # Append language info if README exists
+                              with open(readme_path, 'a', encoding='utf-8') as f:
+                                  f.write(f"\n### Solution in {lang.upper()}\n")
+                                  f.write(f"File: `solution.{ext}`\n")
+                          else:
+                              # Create new README
+                              with open(readme_path, 'w', encoding='utf-8') as f:
+                                  f.write(f"# {problem_title}\n\n")
+                                  f.write(f"**Difficulty:** {difficulty}\n\n")
+                                  f.write(f"**Problem Link:** [LeetCode](https://leetcode.com/problems/{title_slug}/)\n\n")
+                                  f.write(f"**Status:** Accepted\n\n")
+                                  f.write(f"## Available Solutions\n\n")
+                                  f.write(f"### Solution in {lang.upper()}\n")
+                                  f.write(f"File: `solution.{ext}`\n")
                           
-                          print(f"Saved: {folder_name}")
+                          print(f"Saved: {folder_name}/solution.{ext}")
               else:
                   print("No submissions found in response")
                   
