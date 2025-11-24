@@ -7,3 +7,6 @@
 **Problem Link:** [LeetCode](https://leetcode.com/problems/find-the-original-typed-string-i/)
 
 **Status:** Accepted
+
+### Solution in JAVASCRIPT
+File: `solution.js`

@@ -7,3 +7,6 @@
 **Problem Link:** [LeetCode](https://leetcode.com/problems/power-of-two/)
 
 **Status:** Accepted
+
+### Solution in JAVASCRIPT
+File: `solution.js`
