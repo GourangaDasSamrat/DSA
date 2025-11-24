@@ -1,0 +1,35 @@
+name: LeetCode Auto Sync
+
+on:
+  # Schedule to run every day at 00:00 UTC
+  schedule:
+    - cron: '0 0 * * *'
+  # Allows manual triggering from the GitHub Actions tab
+  workflow_dispatch:
+
+jobs:
+  sync_solutions:
+    runs-on: ubuntu-latest
+    
+    # Added write permission for the Action to commit files
+    permissions:
+      contents: write
+      
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: LeetCode Submissions Sync
+        uses: joshcai/leetcode-sync@v2.1
+        with:
+          # Required GitHub Personal Access Token (PAT) with 'repo' scope
+          github-token: ${{ secrets.GH_TOKEN }}
+          
+          # LeetCode session cookie for authentication
+          leetcode-session: ${{ secrets.LEETCODE_SESSION }}
+          
+          # LeetCode CSRF token cookie for API requests
+          leetcode-csrf-token: ${{ secrets.LEETCODE_CSRF_TOKEN }}
+          
+          # Optional: Specify the folder where solutions will be saved
+          destination-folder: ""
