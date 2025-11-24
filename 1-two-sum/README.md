@@ -10,3 +10,9 @@
 
 ### Solution in JAVASCRIPT
 File: `solution.js`
+
+### Solution in PYTHON3
+File: `solution.py`
+
+### Solution in JAVASCRIPT
+File: `solution.js`
