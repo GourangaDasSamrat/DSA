@@ -1,17 +1,14 @@
 name: LeetCode Auto Sync
 
 on:
-  # Schedule to run every day at 00:00 UTC
   schedule:
     - cron: '0 0 * * *'
-  # Allows manual triggering from the GitHub Actions tab
   workflow_dispatch:
 
 jobs:
   sync_solutions:
     runs-on: ubuntu-latest
     
-    # Added write permission for the Action to commit files
     permissions:
       contents: write
       
@@ -22,14 +19,40 @@ jobs:
       - name: LeetCode Submissions Sync
         uses: joshcai/leetcode-sync@v2.1
         with:
-          # Required GitHub Personal Access Token (PAT) with 'repo' scope
           github-token: ${{ secrets.GH_TOKEN }}
-          
-          # LeetCode session cookie for authentication
           leetcode-session: ${{ secrets.LEETCODE_SESSION }}
-          
-          # LeetCode CSRF token cookie for API requests
           leetcode-csrf-token: ${{ secrets.LEETCODE_CSRF_TOKEN }}
+          destination-folder: temp_solutions
+
+      - name: Organize into separate folders
+        run: |
+          cd temp_solutions
           
-          # Optional: Specify the folder where solutions will be saved
-          destination-folder: ""
+          # Process each solution file
+          for file in *; do
+            if [ -f "$file" ]; then
+              # Extract problem number and name
+              filename="${file%.*}"
+              extension="${file##*.}"
+              
+              # Create folder in root with problem name
+              mkdir -p "../$filename"
+              
+              # Move file into its folder
+              mv "$file" "../$filename/solution.$extension"
+              
+              # Optional: Create a README for each problem
+              echo "# $filename" > "../$filename/README.md"
+            fi
+          done
+          
+          # Remove temp folder
+          cd ..
+          rm -rf temp_solutions
+
+      - name: Commit and push changes
+        run: |
+          git config --local user.email "action@github.com"
+          git config --local user.name "GitHub Action"
+          git add .
+          git diff --quiet && git diff --staged --quiet || (git commit -m "Sync LeetCode solutions" && git push)
