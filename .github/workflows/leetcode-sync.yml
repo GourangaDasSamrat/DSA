@@ -16,51 +16,109 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: LeetCode Submissions Sync
-        uses: joshcai/leetcode-sync@v1.5
+      - name: Setup Python
+        uses: actions/setup-python@v4
         with:
-          github-token: ${{ secrets.GH_TOKEN }}
-          leetcode-session: ${{ secrets.LEETCODE_SESSION }}
-          leetcode-csrf-token: ${{ secrets.LEETCODE_CSRF_TOKEN }}
-          destination-folder: temp_solutions
+          python-version: '3.x'
 
-      - name: Organize into separate folders
+      - name: Install dependencies
         run: |
-          # Check if temp_solutions/problems exists
-          if [ -d "temp_solutions/problems" ]; then
-            cd temp_solutions/problems
-          elif [ -d "temp_solutions" ]; then
-            cd temp_solutions
-          else
-            echo "No solutions found"
-            exit 0
-          fi
+          pip install requests beautifulsoup4
+
+      - name: Sync LeetCode Solutions
+        env:
+          GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}
+          LEETCODE_SESSION: ${{ secrets.LEETCODE_SESSION }}
+          LEETCODE_CSRF: ${{ secrets.LEETCODE_CSRF_TOKEN }}
+        run: |
+          python3 << 'EOF'
+          import requests
+          import json
+          import os
+          import base64
+          from datetime import datetime
+
+          session = os.environ.get('LEETCODE_SESSION')
+          csrf_token = os.environ.get('LEETCODE_CSRF')
+          github_token = os.environ.get('GITHUB_TOKEN')
+
+          if not session or not csrf_token:
+              print("Missing LeetCode credentials!")
+              exit(1)
+
+          # LeetCode API endpoint
+          url = "https://leetcode.com/api/submissions/"
           
-          # Process each solution file
-          for file in *; do
-            if [ -f "$file" ]; then
-              # Extract problem number and name
-              filename="${file%.*}"
-              extension="${file##*.}"
-              
-              # Create folder in root with problem name
-              mkdir -p "../../$filename"
-              
-              # Move file into its folder
-              cp "$file" "../../$filename/solution.$extension"
-              
-              # Create a README for each problem
-              echo "# $filename" > "../../$filename/README.md"
-            fi
-          done
+          cookies = {
+              'LEETCODE_SESSION': session,
+              'csrftoken': csrf_token
+          }
           
-          # Go back to root and remove temp folder
-          cd ../..
-          rm -rf temp_solutions
+          headers = {
+              'referer': 'https://leetcode.com',
+              'x-csrftoken': csrf_token
+          }
+
+          try:
+              response = requests.get(url, cookies=cookies, headers=headers)
+              response.raise_for_status()
+              data = response.json()
+              
+              if 'submissions_dump' in data:
+                  submissions = data['submissions_dump']
+                  print(f"Found {len(submissions)} submissions")
+                  
+                  # Process only accepted submissions
+                  for sub in submissions:
+                      if sub['status_display'] == 'Accepted':
+                          title_slug = sub['title_slug']
+                          lang = sub['lang']
+                          code = sub.get('code', '')
+                          
+                          # Create folder
+                          folder_name = f"{sub['id']}-{title_slug}"
+                          os.makedirs(folder_name, exist_ok=True)
+                          
+                          # Determine file extension
+                          ext_map = {
+                              'cpp': 'cpp', 'java': 'java', 'python': 'py',
+                              'python3': 'py', 'c': 'c', 'csharp': 'cs',
+                              'javascript': 'js', 'typescript': 'ts',
+                              'php': 'php', 'swift': 'swift', 'kotlin': 'kt',
+                              'go': 'go', 'ruby': 'rb', 'scala': 'scala',
+                              'rust': 'rs'
+                          }
+                          ext = ext_map.get(lang, 'txt')
+                          
+                          # Save solution
+                          with open(f"{folder_name}/solution.{ext}", 'w') as f:
+                              f.write(code)
+                          
+                          # Create README
+                          with open(f"{folder_name}/README.md", 'w') as f:
+                              f.write(f"# {title_slug}\n\n")
+                              f.write(f"**Language:** {lang}\n")
+                              f.write(f"**Status:** {sub['status_display']}\n")
+                          
+                          print(f"Saved: {folder_name}")
+              else:
+                  print("No submissions found in response")
+                  print(f"Response keys: {data.keys()}")
+                  
+          except Exception as e:
+              print(f"Error: {e}")
+              exit(1)
+          EOF
 
       - name: Commit and push changes
         run: |
           git config --local user.email "action@github.com"
           git config --local user.name "GitHub Action"
           git add .
-          git diff --quiet && git diff --staged --quiet || (git commit -m "Sync LeetCode solutions" && git push)
+          if ! git diff --quiet --cached; then
+            git commit -m "Sync LeetCode solutions - $(date +'%Y-%m-%d')"
+            git push
+            echo "Changes pushed successfully!"
+          else
+            echo "No changes to commit"
+          fi
