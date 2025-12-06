@@ -45,6 +45,10 @@ jobs:
               print("Missing LeetCode credentials!")
               exit(1)
 
+          # Create leetcode directory if it doesn't exist
+          base_dir = './leetcode'
+          os.makedirs(base_dir, exist_ok=True)
+
           # GraphQL query to get problem details
           def get_problem_number(title_slug):
               graphql_url = "https://leetcode.com/graphql"
@@ -142,7 +146,7 @@ jobs:
                                       'folder': title_slug
                                   }
                           
-                          folder_name = processed_problems[title_slug]['folder']
+                          folder_name = os.path.join(base_dir, processed_problems[title_slug]['folder'])
                           os.makedirs(folder_name, exist_ok=True)
                           
                           # Determine file extension
@@ -157,15 +161,15 @@ jobs:
                           ext = ext_map.get(lang, 'txt')
                           
                           # Save solution
-                          filename = f"{folder_name}/solution.{ext}"
+                          filename = os.path.join(folder_name, f"solution.{ext}")
                           with open(filename, 'w', encoding='utf-8') as f:
                               f.write(code)
                           
-                          print(f"Saved: {folder_name}/solution.{ext}")
+                          print(f"Saved: {filename}")
                   
                   # Now create/update README files for all processed problems
                   for title_slug, info in processed_problems.items():
-                      readme_path = f"{info['folder']}/README.md"
+                      readme_path = os.path.join(base_dir, info['folder'], 'README.md')
                       with open(readme_path, 'w', encoding='utf-8') as f:
                           f.write(f"# {info['title']}\n\n")
                           f.write(f"**Difficulty:** {info['difficulty']}\n\n")
