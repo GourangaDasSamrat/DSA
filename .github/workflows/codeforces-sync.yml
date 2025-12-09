@@ -39,6 +39,7 @@ jobs:
           import time
           import hashlib
           import random
+          import re
           from datetime import datetime
           from bs4 import BeautifulSoup
 
@@ -47,12 +48,17 @@ jobs:
           cf_secret = os.environ.get('CF_SECRET')
 
           if not cf_handle:
-              print("Missing Codeforces handle!")
+              print("❌ Missing Codeforces handle!")
               exit(1)
+
+          print(f"🚀 Starting sync for handle: {cf_handle}")
+          print(f"🔑 API Key present: {bool(cf_key)}")
+          print(f"🔐 API Secret present: {bool(cf_secret)}")
 
           # Create codeforces directory
           base_dir = './codeforces'
           os.makedirs(base_dir, exist_ok=True)
+          print(f"📁 Created directory: {base_dir}")
 
           def generate_api_sig(method_name, params, api_secret):
               """Generate API signature for authenticated requests"""
@@ -68,7 +74,7 @@ jobs:
               base_params = {"handle": handle}
               
               if api_key and api_secret:
-                  print("Using authenticated API request")
+                  print("🔐 Using authenticated API request")
                   base_params["apiKey"] = api_key
                   base_params["time"] = str(int(time.time()))
                   api_sig = generate_api_sig(method, base_params, api_secret)
@@ -79,7 +85,7 @@ jobs:
                   
                   response = requests.get(url)
               else:
-                  print("Using public API request (no authentication)")
+                  print("🌐 Using public API request (no authentication)")
                   url = "https://codeforces.com/api/user.status"
                   response = requests.get(url, params=base_params)
                   
@@ -88,61 +94,94 @@ jobs:
                   data = response.json()
                   
                   if data['status'] == 'OK':
-                      print(f"Successfully fetched {len(data['result'])} submissions")
+                      print(f"✅ Successfully fetched {len(data['result'])} submissions")
                       return data['result']
                   else:
-                      print(f"API Error: {data.get('comment', 'Unknown')}")
+                      print(f"❌ API Error: {data.get('comment', 'Unknown')}")
                       return []
               except Exception as e:
-                  print(f"Error fetching submissions: {e}")
+                  print(f"❌ Error fetching submissions: {e}")
                   return []
 
-          def scrape_submission_code(contest_id, submission_id, session=None):
-              """Scrape source code from a submission page"""
+          def scrape_submission_code(contest_id, submission_id, max_retries=3):
+              """Scrape source code from a submission page with retries"""
               url = f"https://codeforces.com/contest/{contest_id}/submission/{submission_id}"
               
-              try:
-                  if session:
-                      response = session.get(url)
-                  else:
-                      response = requests.get(url)
-                  
-                  response.raise_for_status()
-                  soup = BeautifulSoup(response.text, 'html.parser')
-                  
-                  # Find the source code in pre tag
-                  code_element = soup.find('pre', {'id': 'program-source-text'})
-                  if code_element:
-                      return code_element.get_text()
-                  
-                  return None
-              except Exception as e:
-                  print(f"Error scraping submission {submission_id}: {e}")
-                  return None
+              headers = {
+                  'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+                  'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
+                  'Accept-Language': 'en-US,en;q=0.5',
+                  'Connection': 'keep-alive',
+                  'Upgrade-Insecure-Requests': '1'
+              }
+              
+              for attempt in range(max_retries):
+                  try:
+                      session = requests.Session()
+                      response = session.get(url, headers=headers, timeout=10)
+                      response.raise_for_status()
+                      
+                      soup = BeautifulSoup(response.text, 'html.parser')
+                      
+                      # Method 1: Try to find pre tag with id
+                      code_element = soup.find('pre', {'id': 'program-source-text'})
+                      if code_element:
+                          code = code_element.get_text()
+                          if code.strip():
+                              return code
+                      
+                      # Method 2: Try to find pre tag with class
+                      code_element = soup.find('pre', class_='prettyprint')
+                      if code_element:
+                          code = code_element.get_text()
+                          if code.strip():
+                              return code
+                      
+                      # Method 3: Search for any pre tag containing code
+                      all_pre = soup.find_all('pre')
+                      for pre in all_pre:
+                          code = pre.get_text()
+                          if code.strip() and len(code) > 50:  # Likely actual code
+                              return code
+                      
+                      print(f"⚠️  No code found in HTML for submission {submission_id}")
+                      
+                  except requests.exceptions.RequestException as e:
+                      print(f"⚠️  Attempt {attempt + 1}/{max_retries} failed for {submission_id}: {e}")
+                      if attempt < max_retries - 1:
+                          time.sleep(2 ** attempt)  # Exponential backoff
+                  except Exception as e:
+                      print(f"❌ Error scraping submission {submission_id}: {e}")
+                      break
+              
+              return None
 
-          # Create session for scraping
-          session = requests.Session()
-          session.headers.update({
-              'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
-          })
-
-          print(f"Fetching submissions for handle: {cf_handle}")
+          # Fetch submissions
+          print(f"\n📥 Fetching submissions...")
           submissions = get_user_submissions(cf_handle, cf_key, cf_secret)
           
           if not submissions:
-              print("No submissions found")
+              print("❌ No submissions found or API error")
               exit(0)
           
-          print(f"Found {len(submissions)} total submissions")
-          
-          # Track processed problems (keep only first accepted submission)
-          processed_problems = {}
+          print(f"📊 Total submissions: {len(submissions)}")
           
           # Filter accepted submissions
           accepted_subs = [s for s in submissions if s.get('verdict') == 'OK']
-          print(f"Found {len(accepted_subs)} accepted submissions")
+          print(f"✅ Accepted submissions: {len(accepted_subs)}")
           
-          for sub in accepted_subs:
+          if not accepted_subs:
+              print("⚠️  No accepted submissions found!")
+              exit(0)
+          
+          # Track processed problems
+          processed_problems = {}
+          success_count = 0
+          fail_count = 0
+          
+          print(f"\n🔄 Processing accepted submissions...\n")
+          
+          for idx, sub in enumerate(accepted_subs, 1):
               problem = sub['problem']
               contest_id = problem.get('contestId')
               
@@ -162,20 +201,22 @@ jobs:
               lang = sub['programmingLanguage']
               submission_id = sub['id']
               
+              print(f"[{idx}/{len(accepted_subs)}] Processing: {problem_id} - {problem_name}")
+              
               # Determine file extension
               ext_map = {
                   'GNU C++': 'cpp', 'GNU C++11': 'cpp', 'GNU C++14': 'cpp',
                   'GNU C++17': 'cpp', 'GNU C++20': 'cpp', 'GNU C++23': 'cpp',
-                  'MS C++': 'cpp', 'Clang++17': 'cpp',
+                  'Clang++': 'cpp', 'MS C++': 'cpp',
                   'GNU C': 'c', 'GNU C11': 'c',
                   'Python 2': 'py', 'Python 3': 'py', 'PyPy 2': 'py', 'PyPy 3': 'py',
-                  'Java 8': 'java', 'Java 11': 'java', 'Java 17': 'java',
+                  'Java 8': 'java', 'Java 11': 'java', 'Java 17': 'java', 'Java 21': 'java',
                   'Kotlin': 'kt', 'Scala': 'scala',
                   'JavaScript': 'js', 'Node.js': 'js',
                   'Go': 'go', 'Rust': 'rs',
-                  'C#': 'cs', 'Mono C#': 'cs',
+                  'C#': 'cs', 'Mono C#': 'cs', '.NET': 'cs',
                   'Ruby': 'rb', 'PHP': 'php',
-                  'Haskell': 'hs', 'Perl': 'pl'
+                  'Haskell': 'hs', 'Perl': 'pl', 'Dart': 'dart'
               }
               
               ext = 'txt'
@@ -185,12 +226,13 @@ jobs:
                       break
               
               # Scrape source code
-              print(f"Fetching code for {problem_id} - {problem_name}")
-              code = scrape_submission_code(contest_id, submission_id, session)
+              code = scrape_submission_code(contest_id, submission_id)
               
               if code:
                   # Create folder
-                  folder_name = f"{problem_id}-{problem_name.lower().replace(' ', '-').replace('/', '-')}"
+                  safe_name = re.sub(r'[^\w\s-]', '', problem_name.lower())
+                  safe_name = re.sub(r'[-\s]+', '-', safe_name)
+                  folder_name = f"{problem_id}-{safe_name}"
                   folder_path = os.path.join(base_dir, folder_name)
                   os.makedirs(folder_path, exist_ok=True)
                   
@@ -198,7 +240,7 @@ jobs:
                   code_file = os.path.join(folder_path, f"solution.{ext}")
                   with open(code_file, 'w', encoding='utf-8') as f:
                       f.write(code)
-                  print(f"Saved: {code_file}")
+                  print(f"  ✅ Saved code: {code_file}")
                   
                   # Create README
                   readme_path = os.path.join(folder_path, 'README.md')
@@ -213,7 +255,7 @@ jobs:
                       f.write(f"**Problem Link:** [Codeforces](https://codeforces.com/problemset/problem/{contest_id}/{problem_index})\n\n")
                       f.write(f"**Submission Link:** [View Submission](https://codeforces.com/contest/{contest_id}/submission/{submission_id})\n\n")
                       f.write(f"**Language:** {lang}\n\n")
-                      f.write(f"**Status:** Accepted\n")
+                      f.write(f"**Status:** Accepted ✅\n")
                   
                   processed_problems[problem_id] = {
                       'contest_id': contest_id,
@@ -224,18 +266,26 @@ jobs:
                       'lang': lang
                   }
                   
-                  # Rate limiting
-                  time.sleep(1)
+                  success_count += 1
               else:
-                  print(f"Could not fetch code for {problem_id}")
+                  print(f"  ❌ Failed to fetch code")
+                  fail_count += 1
+              
+              # Rate limiting
+              time.sleep(1.5)
+          
+          print(f"\n{'='*50}")
+          print(f"✅ Successfully processed: {success_count} problems")
+          print(f"❌ Failed to fetch: {fail_count} problems")
+          print(f"{'='*50}\n")
           
           # Create main README
           if processed_problems:
               main_readme_path = os.path.join(base_dir, 'README.md')
               with open(main_readme_path, 'w', encoding='utf-8') as f:
-                  f.write(f"# Codeforces Solutions - {cf_handle}\n\n")
+                  f.write(f"# 🏆 Codeforces Solutions - {cf_handle}\n\n")
                   f.write(f"**Total Problems Solved:** {len(processed_problems)}\n\n")
-                  f.write(f"**Last Updated:** {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n\n")
+                  f.write(f"**Last Updated:** {datetime.now().strftime('%Y-%m-%d %H:%M:%S UTC')}\n\n")
                   
                   # Group by rating
                   rating_groups = {}
@@ -243,11 +293,11 @@ jobs:
                       rating = str(info['rating'])
                       rating_groups[rating] = rating_groups.get(rating, 0) + 1
                   
-                  f.write("## Problems by Rating\n\n")
-                  for rating in sorted(rating_groups.keys()):
+                  f.write("## 📊 Problems by Rating\n\n")
+                  for rating in sorted(rating_groups.keys(), key=lambda x: int(x) if x != 'Unrated' else 0):
                       f.write(f"- **{rating}:** {rating_groups[rating]} problems\n")
                   
-                  f.write("\n## All Problems\n\n")
+                  f.write("\n## 📝 All Problems\n\n")
                   
                   sorted_problems = sorted(
                       processed_problems.items(),
@@ -255,13 +305,16 @@ jobs:
                   )
                   
                   for problem_id, info in sorted_problems:
-                      folder_name = f"{problem_id}-{info['name'].lower().replace(' ', '-').replace('/', '-')}"
+                      safe_name = re.sub(r'[^\w\s-]', '', info['name'].lower())
+                      safe_name = re.sub(r'[-\s]+', '-', safe_name)
+                      folder_name = f"{problem_id}-{safe_name}"
                       f.write(f"- [{info['contest_id']}{info['index']} - {info['name']}](./{folder_name}) ")
                       f.write(f"(Rating: {info['rating']})\n")
               
-              print(f"\nSync completed! Processed {len(processed_problems)} problems")
+              print(f"📄 Created main README: {main_readme_path}")
+              print(f"\n✅ Sync completed successfully!")
           else:
-              print("No problems were processed")
+              print("\n⚠️  No problems were processed")
           
           EOF
 
@@ -271,9 +324,9 @@ jobs:
           git config --local user.name "GitHub Action"
           git add .
           if ! git diff --quiet --cached; then
-            git commit -m "Sync Codeforces solutions - $(date +'%Y-%m-%d')"
+            git commit -m "🔄 Sync Codeforces solutions - $(date +'%Y-%m-%d')"
             git push
-            echo "Changes pushed successfully!"
+            echo "✅ Changes pushed successfully!"
           else
-            echo "No changes to commit"
+            echo "ℹ️  No changes to commit"
           fi
