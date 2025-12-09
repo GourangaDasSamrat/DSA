@@ -1,0 +1,279 @@
+name: Codeforces Auto Sync
+
+on:
+  schedule:
+    - cron: '0 0 * * *'
+  workflow_dispatch:
+
+jobs:
+  sync_solutions:
+    runs-on: ubuntu-latest
+    
+    permissions:
+      contents: write
+      
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.x'
+
+      - name: Install dependencies
+        run: |
+          pip install requests beautifulsoup4 lxml
+
+      - name: Sync Codeforces Solutions
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          CF_HANDLE: ${{ secrets.CF_HANDLE }}
+          CF_KEY: ${{ secrets.CF_KEY }}
+          CF_SECRET: ${{ secrets.CF_SECRET }}
+        run: |
+          python3 << 'EOF'
+          import requests
+          import json
+          import os
+          import time
+          import hashlib
+          import random
+          from datetime import datetime
+          from bs4 import BeautifulSoup
+
+          cf_handle = os.environ.get('CF_HANDLE')
+          cf_key = os.environ.get('CF_KEY')
+          cf_secret = os.environ.get('CF_SECRET')
+
+          if not cf_handle:
+              print("Missing Codeforces handle!")
+              exit(1)
+
+          # Create codeforces directory
+          base_dir = './codeforces'
+          os.makedirs(base_dir, exist_ok=True)
+
+          def generate_api_sig(method_name, params, api_secret):
+              """Generate API signature for authenticated requests"""
+              rand = str(random.randint(100000, 999999))
+              params_str = '&'.join([f"{k}={v}" for k, v in sorted(params.items())])
+              to_hash = f"{rand}/{method_name}?{params_str}#{api_secret}"
+              api_sig = rand + hashlib.sha512(to_hash.encode()).hexdigest()
+              return api_sig
+
+          def get_user_submissions(handle, api_key=None, api_secret=None):
+              """Get user submissions using Codeforces API"""
+              method = "user.status"
+              base_params = {"handle": handle}
+              
+              if api_key and api_secret:
+                  print("Using authenticated API request")
+                  base_params["apiKey"] = api_key
+                  base_params["time"] = str(int(time.time()))
+                  api_sig = generate_api_sig(method, base_params, api_secret)
+                  
+                  params_list = [f"{k}={v}" for k, v in sorted(base_params.items())]
+                  params_str = '&'.join(params_list)
+                  url = f"https://codeforces.com/api/{method}?{params_str}&apiSig={api_sig}"
+                  
+                  response = requests.get(url)
+              else:
+                  print("Using public API request (no authentication)")
+                  url = "https://codeforces.com/api/user.status"
+                  response = requests.get(url, params=base_params)
+                  
+              try:
+                  response.raise_for_status()
+                  data = response.json()
+                  
+                  if data['status'] == 'OK':
+                      print(f"Successfully fetched {len(data['result'])} submissions")
+                      return data['result']
+                  else:
+                      print(f"API Error: {data.get('comment', 'Unknown')}")
+                      return []
+              except Exception as e:
+                  print(f"Error fetching submissions: {e}")
+                  return []
+
+          def scrape_submission_code(contest_id, submission_id, session=None):
+              """Scrape source code from a submission page"""
+              url = f"https://codeforces.com/contest/{contest_id}/submission/{submission_id}"
+              
+              try:
+                  if session:
+                      response = session.get(url)
+                  else:
+                      response = requests.get(url)
+                  
+                  response.raise_for_status()
+                  soup = BeautifulSoup(response.text, 'html.parser')
+                  
+                  # Find the source code in pre tag
+                  code_element = soup.find('pre', {'id': 'program-source-text'})
+                  if code_element:
+                      return code_element.get_text()
+                  
+                  return None
+              except Exception as e:
+                  print(f"Error scraping submission {submission_id}: {e}")
+                  return None
+
+          # Create session for scraping
+          session = requests.Session()
+          session.headers.update({
+              'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
+          })
+
+          print(f"Fetching submissions for handle: {cf_handle}")
+          submissions = get_user_submissions(cf_handle, cf_key, cf_secret)
+          
+          if not submissions:
+              print("No submissions found")
+              exit(0)
+          
+          print(f"Found {len(submissions)} total submissions")
+          
+          # Track processed problems (keep only first accepted submission)
+          processed_problems = {}
+          
+          # Filter accepted submissions
+          accepted_subs = [s for s in submissions if s.get('verdict') == 'OK']
+          print(f"Found {len(accepted_subs)} accepted submissions")
+          
+          for sub in accepted_subs:
+              problem = sub['problem']
+              contest_id = problem.get('contestId')
+              
+              if not contest_id:
+                  continue
+              
+              problem_index = problem.get('index', '')
+              problem_id = f"{contest_id}{problem_index}"
+              
+              # Skip if already processed
+              if problem_id in processed_problems:
+                  continue
+              
+              problem_name = problem.get('name', 'Unknown Problem')
+              problem_rating = problem.get('rating', 'Unrated')
+              tags = problem.get('tags', [])
+              lang = sub['programmingLanguage']
+              submission_id = sub['id']
+              
+              # Determine file extension
+              ext_map = {
+                  'GNU C++': 'cpp', 'GNU C++11': 'cpp', 'GNU C++14': 'cpp',
+                  'GNU C++17': 'cpp', 'GNU C++20': 'cpp', 'GNU C++23': 'cpp',
+                  'MS C++': 'cpp', 'Clang++17': 'cpp',
+                  'GNU C': 'c', 'GNU C11': 'c',
+                  'Python 2': 'py', 'Python 3': 'py', 'PyPy 2': 'py', 'PyPy 3': 'py',
+                  'Java 8': 'java', 'Java 11': 'java', 'Java 17': 'java',
+                  'Kotlin': 'kt', 'Scala': 'scala',
+                  'JavaScript': 'js', 'Node.js': 'js',
+                  'Go': 'go', 'Rust': 'rs',
+                  'C#': 'cs', 'Mono C#': 'cs',
+                  'Ruby': 'rb', 'PHP': 'php',
+                  'Haskell': 'hs', 'Perl': 'pl'
+              }
+              
+              ext = 'txt'
+              for key in ext_map:
+                  if key in lang:
+                      ext = ext_map[key]
+                      break
+              
+              # Scrape source code
+              print(f"Fetching code for {problem_id} - {problem_name}")
+              code = scrape_submission_code(contest_id, submission_id, session)
+              
+              if code:
+                  # Create folder
+                  folder_name = f"{problem_id}-{problem_name.lower().replace(' ', '-').replace('/', '-')}"
+                  folder_path = os.path.join(base_dir, folder_name)
+                  os.makedirs(folder_path, exist_ok=True)
+                  
+                  # Save source code
+                  code_file = os.path.join(folder_path, f"solution.{ext}")
+                  with open(code_file, 'w', encoding='utf-8') as f:
+                      f.write(code)
+                  print(f"Saved: {code_file}")
+                  
+                  # Create README
+                  readme_path = os.path.join(folder_path, 'README.md')
+                  with open(readme_path, 'w', encoding='utf-8') as f:
+                      f.write(f"# {problem_index}. {problem_name}\n\n")
+                      f.write(f"**Contest ID:** {contest_id}\n\n")
+                      f.write(f"**Rating:** {problem_rating}\n\n")
+                      
+                      if tags:
+                          f.write(f"**Tags:** {', '.join(tags)}\n\n")
+                      
+                      f.write(f"**Problem Link:** [Codeforces](https://codeforces.com/problemset/problem/{contest_id}/{problem_index})\n\n")
+                      f.write(f"**Submission Link:** [View Submission](https://codeforces.com/contest/{contest_id}/submission/{submission_id})\n\n")
+                      f.write(f"**Language:** {lang}\n\n")
+                      f.write(f"**Status:** Accepted\n")
+                  
+                  processed_problems[problem_id] = {
+                      'contest_id': contest_id,
+                      'index': problem_index,
+                      'name': problem_name,
+                      'rating': problem_rating,
+                      'tags': tags,
+                      'lang': lang
+                  }
+                  
+                  # Rate limiting
+                  time.sleep(1)
+              else:
+                  print(f"Could not fetch code for {problem_id}")
+          
+          # Create main README
+          if processed_problems:
+              main_readme_path = os.path.join(base_dir, 'README.md')
+              with open(main_readme_path, 'w', encoding='utf-8') as f:
+                  f.write(f"# Codeforces Solutions - {cf_handle}\n\n")
+                  f.write(f"**Total Problems Solved:** {len(processed_problems)}\n\n")
+                  f.write(f"**Last Updated:** {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n\n")
+                  
+                  # Group by rating
+                  rating_groups = {}
+                  for info in processed_problems.values():
+                      rating = str(info['rating'])
+                      rating_groups[rating] = rating_groups.get(rating, 0) + 1
+                  
+                  f.write("## Problems by Rating\n\n")
+                  for rating in sorted(rating_groups.keys()):
+                      f.write(f"- **{rating}:** {rating_groups[rating]} problems\n")
+                  
+                  f.write("\n## All Problems\n\n")
+                  
+                  sorted_problems = sorted(
+                      processed_problems.items(),
+                      key=lambda x: (x[1]['contest_id'], x[1]['index'])
+                  )
+                  
+                  for problem_id, info in sorted_problems:
+                      folder_name = f"{problem_id}-{info['name'].lower().replace(' ', '-').replace('/', '-')}"
+                      f.write(f"- [{info['contest_id']}{info['index']} - {info['name']}](./{folder_name}) ")
+                      f.write(f"(Rating: {info['rating']})\n")
+              
+              print(f"\nSync completed! Processed {len(processed_problems)} problems")
+          else:
+              print("No problems were processed")
+          
+          EOF
+
+      - name: Commit and push changes
+        run: |
+          git config --local user.email "action@github.com"
+          git config --local user.name "GitHub Action"
+          git add .
+          if ! git diff --quiet --cached; then
+            git commit -m "Sync Codeforces solutions - $(date +'%Y-%m-%d')"
+            git push
+            echo "Changes pushed successfully!"
+          else
+            echo "No changes to commit"
+          fi
