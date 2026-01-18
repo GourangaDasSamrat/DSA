@@ -23,19 +23,6 @@ My personal collection of LeetCode problem solutions, documenting my journey in 
 | 14 | [Longest Common Prefix](./14-longest-common-prefix) | 🟢 Easy | `javascript` |
 | 231 | [Power of Two](./231-power-of-two) | 🟢 Easy | `javascript` |
 | 3330 | [Find the Original Typed String I](./3330-find-the-original-typed-string-i) | 🟢 Easy | `javascript` |
-
-## 🎯 Topics Covered
-
-- Arrays & Strings
-- Hash Tables
-- Linked Lists
-- Trees & Graphs
-- Dynamic Programming
-- Sorting & Searching
-- Backtracking
-- Greedy Algorithms
-- And more...
-
 ## 🔗 My Profile
 
 **LeetCode:** [My Profile](https://leetcode.com/u/gourangadassamrat/)
