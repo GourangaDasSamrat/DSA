@@ -2,7 +2,7 @@ name: LeetCode Auto Sync
 
 on:
   schedule:
-    - cron: '0 0 * * *'
+    - cron: '0 0 * * *'  # Daily at midnight UTC
   workflow_dispatch:
 
 jobs:
@@ -23,169 +23,15 @@ jobs:
 
       - name: Install dependencies
         run: |
-          pip install requests beautifulsoup4
+          pip install requests beautifulsoup4 google-generativeai matplotlib
 
-      - name: Sync LeetCode Solutions
+      - name: Run LeetCode Sync Script
         env:
-          GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}
           LEETCODE_SESSION: ${{ secrets.LEETCODE_SESSION }}
           LEETCODE_CSRF: ${{ secrets.LEETCODE_CSRF_TOKEN }}
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
         run: |
-          python3 << 'EOF'
-          import requests
-          import json
-          import os
-          from datetime import datetime
-
-          session = os.environ.get('LEETCODE_SESSION')
-          csrf_token = os.environ.get('LEETCODE_CSRF')
-          github_token = os.environ.get('GITHUB_TOKEN')
-
-          if not session or not csrf_token:
-              print("Missing LeetCode credentials!")
-              exit(1)
-
-          # Create leetcode directory if it doesn't exist
-          base_dir = './leetcode'
-          os.makedirs(base_dir, exist_ok=True)
-
-          # GraphQL query to get problem details
-          def get_problem_number(title_slug):
-              graphql_url = "https://leetcode.com/graphql"
-              query = """
-              query questionTitle($titleSlug: String!) {
-                question(titleSlug: $titleSlug) {
-                  questionId
-                  questionFrontendId
-                  title
-                  difficulty
-                }
-              }
-              """
-              
-              headers = {
-                  'Content-Type': 'application/json',
-                  'referer': 'https://leetcode.com',
-              }
-              
-              cookies = {
-                  'LEETCODE_SESSION': session,
-                  'csrftoken': csrf_token
-              }
-              
-              payload = {
-                  'query': query,
-                  'variables': {'titleSlug': title_slug}
-              }
-              
-              try:
-                  response = requests.post(graphql_url, json=payload, headers=headers, cookies=cookies)
-                  data = response.json()
-                  if 'data' in data and data['data']['question']:
-                      return data['data']['question']
-                  return None
-              except:
-                  return None
-
-          # LeetCode API endpoint
-          url = "https://leetcode.com/api/submissions/"
-          
-          cookies = {
-              'LEETCODE_SESSION': session,
-              'csrftoken': csrf_token
-          }
-          
-          headers = {
-              'referer': 'https://leetcode.com',
-              'x-csrftoken': csrf_token
-          }
-
-          try:
-              response = requests.get(url, cookies=cookies, headers=headers)
-              response.raise_for_status()
-              data = response.json()
-              
-              if 'submissions_dump' in data:
-                  submissions = data['submissions_dump']
-                  print(f"Found {len(submissions)} submissions")
-                  
-                  # Track processed problems
-                  processed_problems = {}  # {title_slug: problem_info}
-                  processed_langs = {}  # {title_slug: {lang1, lang2, ...}}
-                  
-                  # Process only accepted submissions
-                  for sub in submissions:
-                      if sub['status_display'] == 'Accepted':
-                          title_slug = sub['title_slug']
-                          lang = sub['lang']
-                          code = sub.get('code', '')
-                          
-                          # Check if this language already processed for this problem
-                          if title_slug in processed_langs and lang in processed_langs[title_slug]:
-                              continue
-                          
-                          if title_slug not in processed_langs:
-                              processed_langs[title_slug] = set()
-                          processed_langs[title_slug].add(lang)
-                          
-                          # Get problem details (only once per problem)
-                          if title_slug not in processed_problems:
-                              problem_info = get_problem_number(title_slug)
-                              if problem_info:
-                                  processed_problems[title_slug] = {
-                                      'number': problem_info['questionFrontendId'],
-                                      'title': problem_info['title'],
-                                      'difficulty': problem_info['difficulty'],
-                                      'folder': f"{problem_info['questionFrontendId']}-{title_slug}"
-                                  }
-                              else:
-                                  processed_problems[title_slug] = {
-                                      'number': '',
-                                      'title': title_slug.replace('-', ' ').title(),
-                                      'difficulty': 'Unknown',
-                                      'folder': title_slug
-                                  }
-                          
-                          folder_name = os.path.join(base_dir, processed_problems[title_slug]['folder'])
-                          os.makedirs(folder_name, exist_ok=True)
-                          
-                          # Determine file extension
-                          ext_map = {
-                              'cpp': 'cpp', 'java': 'java', 'python': 'py',
-                              'python3': 'py', 'c': 'c', 'csharp': 'cs',
-                              'javascript': 'js', 'typescript': 'ts',
-                              'php': 'php', 'swift': 'swift', 'kotlin': 'kt',
-                              'go': 'go', 'ruby': 'rb', 'scala': 'scala',
-                              'rust': 'rs'
-                          }
-                          ext = ext_map.get(lang, 'txt')
-                          
-                          # Save solution
-                          filename = os.path.join(folder_name, f"solution.{ext}")
-                          with open(filename, 'w', encoding='utf-8') as f:
-                              f.write(code)
-                          
-                          print(f"Saved: {filename}")
-                  
-                  # Now create/update README files for all processed problems
-                  for title_slug, info in processed_problems.items():
-                      readme_path = os.path.join(base_dir, info['folder'], 'README.md')
-                      with open(readme_path, 'w', encoding='utf-8') as f:
-                          f.write(f"# {info['title']}\n\n")
-                          f.write(f"**Difficulty:** {info['difficulty']}\n\n")
-                          f.write(f"**Problem Link:** [LeetCode](https://leetcode.com/problems/{title_slug}/)\n\n")
-                          f.write(f"**Status:** Accepted\n")
-                      print(f"Updated README: {readme_path}")
-                      
-              else:
-                  print("No submissions found in response")
-                  
-          except Exception as e:
-              print(f"Error: {e}")
-              import traceback
-              traceback.print_exc()
-              exit(1)
-          EOF
+          python scripts/sync_leetcode.py
 
       - name: Commit and push changes
         run: |
@@ -193,9 +39,9 @@ jobs:
           git config --local user.name "GitHub Action"
           git add .
           if ! git diff --quiet --cached; then
-            git commit -m "Sync LeetCode solutions - $(date +'%Y-%m-%d')"
+            git commit -m "🔄 Sync LeetCode solutions - $(date +'%Y-%m-%d')"
             git push
-            echo "Changes pushed successfully!"
+            echo "✅ Changes pushed successfully!"
           else
-            echo "No changes to commit"
+            echo "ℹ️ No changes to commit"
           fi
