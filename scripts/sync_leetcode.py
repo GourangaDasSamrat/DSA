@@ -338,17 +338,7 @@ class LeetCodeSync:
                 lang_badges = " ".join([f"`{lang}`" for lang in langs])
                 
                 f.write(f"| {number} | [{title}](./{folder}) | {diff_emoji} {difficulty} | {lang_badges} |\n")
-            
-            f.write("\n## 🎯 Topics Covered\n\n")
-            f.write("- Arrays & Strings\n")
-            f.write("- Hash Tables\n")
-            f.write("- Linked Lists\n")
-            f.write("- Trees & Graphs\n")
-            f.write("- Dynamic Programming\n")
-            f.write("- Sorting & Searching\n")
-            f.write("- Backtracking\n")
-            f.write("- Greedy Algorithms\n")
-            f.write("- And more...\n\n")
+           
             
             f.write("## 🔗 My Profile\n\n")
             f.write("**LeetCode:** [My Profile](https://leetcode.com/u/gourangadassamrat/)\n\n")
