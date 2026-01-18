@@ -351,7 +351,7 @@ class LeetCodeSync:
             f.write("- And more...\n\n")
             
             f.write("## 🔗 My Profile\n\n")
-            f.write("**LeetCode:** [My Profile](https://leetcode.com/u/gourangadas/)\n\n")
+            f.write("**LeetCode:** [My Profile](https://leetcode.com/u/gourangadassamrat/)\n\n")
             
             f.write("## 📈 Features\n\n")
             f.write("Each solution includes:\n")
