@@ -1,78 +1,177 @@
-# DSA Solutions 🌟
+# DSA Solutions
 
-Welcome to the **DSA Solutions** repository! This is a comprehensive collection of solutions to various Data Structures and Algorithms (DSA) problems that I have encountered while learning and practicing. These solutions span challenges from LeetCode, other competitive programming platforms, and my own exploratory learning.
+[![LeetCode Sync](https://github.com/GourangaDasSamrat/DSA/actions/workflows/leetcode-sync.yml/badge.svg)](https://github.com/GourangaDasSamrat/DSA/actions/workflows/leetcode-sync.yml)
+[![Codeforces Sync](https://github.com/GourangaDasSamrat/DSA/actions/workflows/codeforces-sync.yml/badge.svg)](https://github.com/GourangaDasSamrat/DSA/actions/workflows/codeforces-sync.yml)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
----
+A comprehensive collection of Data Structures and Algorithms solutions from competitive programming platforms, featuring automated synchronization and AI-powered complexity analysis.
 
-## 📖 About the Repository
+## Overview
 
-This repository is a one-stop resource for mastering DSA concepts and improving problem-solving skills. The solutions are categorized and written to be easily understood, and they aim to reflect best coding practices.
+This repository maintains an organized archive of solutions from multiple competitive programming platforms. Solutions from LeetCode and Codeforces are automatically synchronized daily via GitHub Actions, with complexity analysis powered by Google Gemini AI. Additional practice problems and manual submissions are organized in separate directories.
 
-### 🏆 What's Included?
+**Automated Platforms**: [LeetCode](./leetcode) • [Codeforces](./codeforces)
 
-- **LeetCode Problems**: Step-by-step solutions to problems across all difficulty levels—**Easy**, **Medium**, and **Hard**.
-- **Other Competitive Programming Problems**: Solutions from various other platforms, contests, and challenges.
-- **Custom Problems**: Solutions to problems I created for deeper understanding of certain concepts.
+**Manual Collections**: [ic-mern-b5](./ic-mern-b5) • Other Platforms
 
-### 📚 Topics Covered
+## Features
 
-Here’s a glimpse of some topics you'll find in this repository:
+### Automated Solutions (LeetCode, Codeforces)
+- **Automated Synchronization**: Daily updates from platform APIs
+- **Complexity Analysis**: AI-generated time and space complexity with explanations
+- **Performance Metrics**: Runtime and memory usage tracking with visualizations
+- **Comprehensive Documentation**: Auto-generated README files for each problem
+- **Version Control**: Complete solution history and evolution tracking
 
-- **Data Structures**: Arrays, Linked Lists, Stacks, Queues, Trees, Graphs, Tries, HashTables, Heaps, and more.
-- **Algorithms**: Sorting, Searching, Dynamic Programming, Recursion, Backtracking, Greedy Algorithms, Divide-and-Conquer, Bit Manipulation, etc.
-- **Math**: Number Theory, Modular Arithmetic, Prime Numbers, etc.
+### Manual Collections
+- **Organized Structure**: Solutions grouped by topic or course
+- **Learning Resources**: Additional practice problems and exercises
+- **Custom Implementations**: Experimental and learning-focused code
 
----
+## Repository Structure
 
-## 🔥 Why This Repository?
+```
+.
+├── leetcode/                 # LeetCode solutions (automated)
+│   ├── README.md            # Statistics and problem index
+│   └── [problem]/           # Individual problem directories
+│       ├── README.md        # Problem details and analysis
+│       ├── solution.*       # Solution implementation
+│       └── performance.png  # Performance visualization
+│
+├── codeforces/              # Codeforces solutions (automated)
+│   ├── README.md            # Statistics and problem index
+│   └── [problem]/           # Individual problem directories
+│
+├── ic-mern-b5/              # Additional practice problems
+│   └── [solutions]/         # Manual submissions
+│
+├── [other-platforms]/       # Other coding challenges
+│
+├── scripts/                 # Automation scripts
+│   ├── sync_leetcode.py
+│   └── sync_codeforces.py
+│
+└── .github/workflows/       # CI/CD configuration
+    ├── leetcode-sync.yml
+    └── codeforces-sync.yml
+```
 
-1. **Comprehensive Learning**: Problems span diverse topics and difficulty levels, ensuring a thorough understanding of DSA.
-2. **Guided Solutions**: Each problem solution is detailed, showing thought processes and coding techniques.
-3. **Iterative Improvement**: Solutions are simplified and optimized over time based on newly learned tactics.
+## Getting Started
 
----
+### Prerequisites
 
-## 🚀 Getting Started
+- Python 3.8+
+- Git
 
-Follow the steps below to explore and use this repository:
+### Installation
 
-### 1️⃣ Clone the Repository
 ```bash
+# Clone the repository
 git clone https://github.com/GourangaDasSamrat/DSA.git
+cd DSA
+
+# Install dependencies (for local development)
+pip install -r requirements.txt
 ```
 
-### 2️⃣ Explore the Problems
-Navigate into the repository to view the collection:
+### Browsing Solutions
+
+Navigate to platform-specific directories:
 
 ```bash
-cd DSA
+# Automated platforms
+cd leetcode     # LeetCode solutions (auto-synced)
+cd codeforces   # Codeforces solutions (auto-synced)
+
+# Manual collections
+cd ic-mern-b5   # Additional practice problems
 ```
 
-Solutions are typically organized by topic or platform for easy reference.
+**Automated directories** contain a `README.md` with problem statistics and a complete index of solutions. Manual collections are organized by topic or course structure.
+
+## Automation Pipeline
+
+### Workflow
+
+1. **Trigger**: GitHub Actions scheduled workflows (daily at 00:00 UTC)
+2. **Fetch**: Retrieve accepted submissions via platform APIs
+3. **Process**: Extract solution code and metadata
+4. **Analyze**: Generate complexity analysis using Gemini AI
+5. **Visualize**: Create performance graphs with Matplotlib
+6. **Document**: Generate comprehensive README files
+7. **Commit**: Push updates to repository
+
+### Configuration
+
+Automation requires the following GitHub Secrets:
+
+**LeetCode**:
+- `LEETCODE_SESSION`: Session cookie from authenticated LeetCode session
+- `LEETCODE_CSRF_TOKEN`: CSRF token from LeetCode
+
+**Codeforces**:
+- `CODEFORCES_HANDLE`: Codeforces username
+
+**Shared**:
+- `GEMINI_API_KEY`: Google Gemini API key for complexity analysis
+
+## Tech Stack
+
+**Languages**: Python, C++, Java, JavaScript
+
+**Automation**: GitHub Actions, Python
+
+**APIs**: LeetCode API, Codeforces API, Google Gemini AI
+
+**Visualization**: Matplotlib
+
+**Version Control**: Git
+
+## Topics Covered
+
+**Data Structures**: Arrays, Linked Lists, Stacks, Queues, Trees, Graphs, Hash Tables, Heaps, Tries
+
+**Algorithms**: Dynamic Programming, Greedy, Backtracking, Divide & Conquer, Graph Algorithms, Sorting, Searching
+
+**Advanced Topics**: Bit Manipulation, Number Theory, Computational Geometry, String Algorithms
+
+## Contributing
+
+This is a personal learning repository, but suggestions and improvements are welcome.
+
+### How to Contribute
+
+1. Fork the repository
+2. Create a feature branch (`git checkout -b feature/improvement`)
+3. Commit your changes (`git commit -am 'Add improvement'`)
+4. Push to the branch (`git push origin feature/improvement`)
+5. Open a Pull Request
+
+Please ensure:
+- Code follows existing style conventions
+- Documentation is updated accordingly
+- All tests pass (if applicable)
+
+## License
+
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+
+## Contact
+
+**Gouranga Das**
+
+- GitHub: [@GourangaDasSamrat](https://github.com/GourangaDasSamrat)
+- LeetCode: [@gourangadassamrat](https://leetcode.com/u/gourangadassamrat/)
+- Codeforces: [@Gouranga_Khulna](https://codeforces.com/profile/Gouranga_Khulna)
+
+## Acknowledgments
+
+- LeetCode for providing the platform and API
+- Codeforces for the competitive programming platform
+- Google Gemini AI for complexity analysis capabilities
+- GitHub Actions for automation infrastructure
 
 ---
 
-## 🛠️ Contributions & Feedback
-
-Your suggestions and contributions are welcome to make this project even better! If you’d like to propose new problems or optimize existing solutions:
-
-- **Open an Issue**: Share your feedback, request features, or report bugs.
-- **Submit Pull Requests**: Feel free to contribute solutions or improvement ideas to this repository.
-
----
-
-## 📩 Contact
-
-Have questions, ideas, or feedback? Reach me via:
-
-- **GitHub**: [@GourangaDasSamrat](https://github.com/GourangaDasSamrat)
-
----
-
-## ⭐ Support
-
-If you found this repository helpful, I’d be grateful if you could leave a ⭐️ on this project to show your support! Sharing it within your network would also help others learn and grow.
-
----
-
-**Happy Coding!** 🤓✨
+**Note**: This repository is automatically updated. Solutions reflect personal approaches and may not represent optimal solutions for all cases.
