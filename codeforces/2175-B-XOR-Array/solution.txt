@@ -1,0 +1,8 @@
+// Solution for XOR Array
+// Contest: 2175, Problem: B
+// Language: C++23 (GCC 14-64, msys2)
+// Verdict: OK
+// Time: 93ms, Memory: 0KB
+
+// Source code URL: https://codeforces.com/contest/2175/submission/352724702
+// Please add your solution code here
