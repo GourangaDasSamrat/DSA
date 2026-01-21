@@ -14,5 +14,5 @@
 
 | Language | Runtime Percentile | Memory Percentile |
 |----------|-------------------|------------------|
-| Javascript | 31.90% | 5.63% |
+| Javascript | 32.01% | 5.02% |
 
