@@ -19,10 +19,10 @@ My personal collection of LeetCode problem solutions, documenting my journey in 
 | # | Title | Difficulty | Solution |
 |---|-------|------------|----------|
 | 1 | [Two Sum](./1-two-sum) | 🟢 Easy | `cpp` `javascript` `python3` |
-| 13 | [Roman to Integer](./13-roman-to-integer) | 🟢 Easy | `javascript` |
-| 14 | [Longest Common Prefix](./14-longest-common-prefix) | 🟢 Easy | `javascript` |
+| 13 | [Roman to Integer](./13-roman-to-integer) | 🟢 Easy | `cpp` `javascript` |
+| 14 | [Longest Common Prefix](./14-longest-common-prefix) | 🟢 Easy | `cpp` `javascript` |
 | 231 | [Power of Two](./231-power-of-two) | 🟢 Easy | `javascript` |
-| 3330 | [Find the Original Typed String I](./3330-find-the-original-typed-string-i) | 🟢 Easy | `javascript` |
+| 3330 | [Find the Original Typed String I](./3330-find-the-original-typed-string-i) | 🟢 Easy | `cpp` `javascript` |
 ## 🔗 My Profile
 
 **LeetCode:** [My Profile](https://leetcode.com/u/gourangadassamrat/)
