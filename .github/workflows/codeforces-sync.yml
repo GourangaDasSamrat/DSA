@@ -15,32 +15,49 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
-
+        with:
+          fetch-depth: 0  # Fetch all history for proper diff checking
+      
       - name: Setup Python
         uses: actions/setup-python@v4
         with:
           python-version: '3.x'
-
+      
       - name: Install dependencies
         run: |
           pip install -r requirements.txt
-
+      
       - name: Run Codeforces Sync Script
         env:
           CODEFORCES_HANDLE: ${{ secrets.CODEFORCES_HANDLE }}
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
         run: |
           python scripts/sync_codeforces.py
-
+      
       - name: Commit and push changes
         run: |
           git config --local user.email "action@github.com"
           git config --local user.name "GitHub Action"
-          git add .
-          if ! git diff --quiet --cached; then
-            git commit -m "Sync Codeforces solutions - $(date +'%Y-%m-%d')"
-            git push
-            echo "✅ Changes pushed successfully!"
-          else
-            echo "ℹ️ No changes to commit"
+          
+          # Check for any changes in the working directory
+          CHANGED_FILES=$(git status --porcelain)
+          
+          if [ -z "$CHANGED_FILES" ]; then
+            echo "ℹ️ No changes detected - repository is up to date"
+            exit 0
           fi
+          
+          echo "📝 Changes detected:"
+          echo "$CHANGED_FILES"
+          echo ""
+          
+          # Stage all changes
+          git add .
+          
+          # Commit with timestamp
+          git commit -m "Sync Codeforces solutions - $(date +'%Y-%m-%d %H:%M:%S UTC')"
+          
+          # Push to repository
+          git push
+          
+          echo "✅ Changes committed and pushed successfully!"
