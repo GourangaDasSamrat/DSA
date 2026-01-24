@@ -56,7 +56,7 @@ jobs:
           git add .
           
           # Commit with timestamp
-          git commit -m "🔄 Sync LeetCode solutions - $(date +'%Y-%m-%d %H:%M:%S UTC')"
+          git commit -m "Sync LeetCode solutions - $(date +'%Y-%m-%d %H:%M:%S UTC')"
           
           # Push to repository
           git push
