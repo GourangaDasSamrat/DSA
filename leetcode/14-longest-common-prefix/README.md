@@ -14,6 +14,6 @@
 
 | Language | Runtime Percentile | Memory Percentile |
 |----------|-------------------|------------------|
-| Cpp | 100.00% | 63.20% |
-| Javascript | 32.05% | 5.57% |
+| Cpp | 100.00% | 63.26% |
+| Javascript | 32.07% | 5.56% |
 
