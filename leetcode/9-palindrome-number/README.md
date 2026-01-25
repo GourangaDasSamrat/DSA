@@ -1,8 +1,8 @@
-# Find the Original Typed String I
+# Palindrome Number
 
 **Difficulty:** Easy
 
-**Problem Link:** [LeetCode](https://leetcode.com/problems/find-the-original-typed-string-i/)
+**Problem Link:** [LeetCode](https://leetcode.com/problems/palindrome-number/)
 
 **Status:** Accepted
 
@@ -14,5 +14,5 @@
 
 | Language | Runtime Percentile | Memory Percentile |
 |----------|-------------------|------------------|
-| Cpp | 26.65% | 7.08% |
+| Cpp | 57.85% | 39.38% |
 

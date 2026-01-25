@@ -4,11 +4,11 @@ My personal collection of LeetCode problem solutions, documenting my journey in 
 
 ## 📊 Progress Statistics
 
-**Total Problems Solved:** 5
+**Total Problems Solved:** 6
 
 | Difficulty | Count |
 |------------|-------|
-| 🟢 Easy | 5 |
+| 🟢 Easy | 6 |
 | 🟡 Medium | 0 |
 | 🔴 Hard | 0 |
 
@@ -18,11 +18,12 @@ My personal collection of LeetCode problem solutions, documenting my journey in 
 
 | # | Title | Difficulty | Solution |
 |---|-------|------------|----------|
-| 1 | [Two Sum](./1-two-sum) | 🟢 Easy | `cpp` `javascript` `python3` |
+| 1 | [Two Sum](./1-two-sum) | 🟢 Easy | `cpp` `python3` |
+| 9 | [Palindrome Number](./9-palindrome-number) | 🟢 Easy | `cpp` |
 | 13 | [Roman to Integer](./13-roman-to-integer) | 🟢 Easy | `cpp` `javascript` |
 | 14 | [Longest Common Prefix](./14-longest-common-prefix) | 🟢 Easy | `cpp` `javascript` |
 | 231 | [Power of Two](./231-power-of-two) | 🟢 Easy | `javascript` |
-| 3330 | [Find the Original Typed String I](./3330-find-the-original-typed-string-i) | 🟢 Easy | `cpp` `javascript` |
+| 3330 | [Find the Original Typed String I](./3330-find-the-original-typed-string-i) | 🟢 Easy | `cpp` |
 ## 🔗 My Profile
 
 **LeetCode:** [My Profile](https://leetcode.com/u/gourangadassamrat/)
@@ -47,4 +48,4 @@ Each solution includes:
 
 _🎯 Consistency is key. Keep coding, keep learning!_ 💻
 
-_Last updated: January 24, 2026_
+_Last updated: January 25, 2026_
