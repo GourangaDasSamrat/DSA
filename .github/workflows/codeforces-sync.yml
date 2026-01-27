@@ -1,5 +1,4 @@
 name: Codeforces Auto Sync
-
 on:
   schedule:
     - cron: '30 0 * * *'  # Daily at 12:30 AM UTC
@@ -39,25 +38,35 @@ jobs:
           git config --local user.email "action@github.com"
           git config --local user.name "GitHub Action"
           
-          # Check for any changes in the working directory
-          CHANGED_FILES=$(git status --porcelain)
+          # Check for changes excluding README.md date updates
+          SOLUTION_CHANGES=$(git diff --name-only | grep -E '\.(py|cpp|java|js|ts|go|rs|c|cs|rb|php|kt|swift)$' || true)
           
-          if [ -z "$CHANGED_FILES" ]; then
-            echo "ℹ️ No changes detected - repository is up to date"
+          if [ -z "$SOLUTION_CHANGES" ]; then
+            echo "ℹ️ No new code solutions detected"
+            
+            # Check if only README changed
+            README_ONLY=$(git diff --name-only | grep -E '^README\.md$' || true)
+            
+            if [ -n "$README_ONLY" ]; then
+              # Reset README changes if only date changed
+              git checkout README.md
+              echo "📌 README date update reverted - no commit needed"
+            fi
+            
             exit 0
           fi
           
-          echo "📝 Changes detected:"
-          echo "$CHANGED_FILES"
+          echo "📝 New solutions detected:"
+          echo "$SOLUTION_CHANGES"
           echo ""
           
           # Stage all changes
           git add .
           
           # Commit with timestamp
-          git commit -m "Sync Codeforces solutions - $(date +'%Y-%m-%d %H:%M:%S UTC')"
+          git commit -m "Add new Codeforces solutions - $(date +'%Y-%m-%d %H:%M:%S UTC')"
           
           # Push to repository
           git push
           
-          echo "✅ Changes committed and pushed successfully!"
+          echo "✅ New solutions committed and pushed successfully!"
