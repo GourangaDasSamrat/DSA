@@ -14,5 +14,5 @@
 
 | Language | Runtime Percentile | Memory Percentile |
 |----------|-------------------|------------------|
-| Cpp | 26.95% | 7.30% |
+| Cpp | 28.30% | 8.52% |
 
